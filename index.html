@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Driver Satisfaction Survey</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #1a56db; --blue-light: #ebf3ff; --blue-dark: #1035a0;
+    --text: #1a1a2e; --text-muted: #5a6072; --text-hint: #8e95a9;
+    --border: #d8dce8; --border-hover: #9aabd4;
+    --bg: #f4f6fb; --white: #ffffff;
+    --error: #dc2626; --error-light: #fef2f2;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; line-height: 1.6; }
+  .page-wrap { max-width: 700px; margin: 0 auto; }
+  .survey-header { background: var(--blue); border-radius: var(--radius) var(--radius) 0 0; padding: 2rem 2.5rem; color: white; }
+  .survey-header .badge { display: inline-block; background: rgba(255,255,255,0.2); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
+  .survey-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+  .survey-header p { font-size: 14px; opacity: 0.85; }
+  .company-tag { display: none; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 600; margin-top: 12px; width: fit-content; }
+  .no-company-banner { background: #fef3c7; border: 1px solid #fcd34d; border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 1.5rem; font-size: 14px; color: #92400e; display: none; }
+  .no-company-banner.show { display: block; }
+  .progress-strip { background: white; padding: 12px 2.5rem; border-left: 1px solid var(--border); border-right: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .progress-bar { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 3px; transition: width 0.4s ease; width: 0%; }
+  .progress-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; min-width: 60px; text-align: right; }
+  .survey-body { background: var(--white); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); padding: 2rem 2.5rem; }
+  .name-block { background: var(--blue-light); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 2rem; border: 1px solid #c7d9f8; }
+  .name-block label { display: block; font-size: 13px; font-weight: 600; color: var(--blue-dark); margin-bottom: 8px; }
+  .name-block label .req { color: var(--error); margin-left: 2px; }
+  .name-input { width: 100%; padding: 10px 14px; border: 1.5px solid #a8c4f0; border-radius: var(--radius-sm); font-size: 15px; font-family: inherit; color: var(--text); background: white; outline: none; transition: border-color 0.2s; }
+  .name-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,0.12); }
+  .q-block { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #eef0f5; }
+  .q-block:last-of-type { border-bottom: none; }
+  .q-label { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: flex; align-items: flex-start; gap: 6px; }
+  .q-num { color: var(--blue); font-weight: 700; flex-shrink: 0; }
+  .q-req { color: var(--error); font-size: 13px; margin-left: 2px; flex-shrink: 0; }
+  .q-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; font-style: italic; }
+  .error-msg { font-size: 12px; color: var(--error); margin-top: 6px; display: none; }
+  .error-msg.show { display: block; }
+  .opts-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 500px) { .opts-grid { grid-template-columns: 1fr; } .survey-body, .survey-header { padding: 1.5rem 1rem; } .progress-strip { padding: 10px 1rem; } }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; background: var(--white); font-size: 14px; color: var(--text); user-select: none; }
+  .opt:hover { border-color: var(--border-hover); background: #f8f9fd; }
+  .opt.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue-dark); }
+  .opt-marker { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .opt-marker.checkbox { border-radius: 4px; }
+  .opt.selected .opt-marker { border-color: var(--blue); background: var(--blue); }
+  .opt.selected .opt-marker::after { content: ''; display: block; width: 6px; height: 6px; background: white; border-radius: 50%; }
+  .opt.selected .opt-marker.checkbox::after { width: 8px; height: 5px; background: none; border-left: 2px solid white; border-bottom: 2px solid white; border-radius: 0; transform: rotate(-45deg) translate(1px,0); }
+  .rating-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .rating-table thead th { background: #f8f9fd; padding: 8px 6px; text-align: center; font-weight: 600; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  .rating-table thead th:first-child { text-align: left; padding-left: 12px; }
+  .rating-table thead th:last-child { text-align: left; padding-left: 8px; }
+  .rating-table tbody tr:hover { background: #f8f9fd; }
+  .rating-table tbody td { padding: 8px 6px; border-bottom: 1px solid #f0f2f8; vertical-align: middle; text-align: center; }
+  .rating-table tbody tr:last-child td { border-bottom: none; }
+  .rating-table tbody td:first-child { text-align: left; padding-left: 12px; font-weight: 500; }
+  .rating-table tbody td:last-child { text-align: left; padding-left: 8px; min-width: 110px; }
+  .r-btn { width: 30px; height: 30px; border: 1.5px solid var(--border); border-radius: 50%; cursor: pointer; background: white; font-size: 12px; font-weight: 600; color: var(--text-muted); transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; }
+  .r-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+  .r-btn.sel { background: var(--blue); border-color: var(--blue); color: white; }
+  .note-input { width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: inherit; color: var(--text); background: white; outline: none; }
+  .free-textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; color: var(--text); background: white; resize: vertical; min-height: 80px; outline: none; }
+  .scale-legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }
+  .scale-legend span { background: #f8f9fd; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+  .submit-section { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eef0f5; }
+  .submit-btn { width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .submit-btn:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,86,219,0.3); }
+  .submit-btn:disabled { background: #a0aec0; cursor: not-allowed; transform: none; box-shadow: none; }
+  .submit-note { text-align: center; font-size: 12px; color: var(--text-hint); margin-top: 10px; }
+  .error-banner { background: var(--error-light); border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 1.5rem; font-size: 14px; color: var(--error); display: none; }
+  .error-banner.show { display: block; }
+  .success-screen { display: none; text-align: center; padding: 4rem 2rem; }
+  .success-icon { width: 72px; height: 72px; background: #f0fdf4; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 32px; }
+  .success-screen h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .success-screen p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+  .new-btn { padding: 10px 24px; background: transparent; border: 1.5px solid var(--blue); color: var(--blue); border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .new-btn:hover { background: var(--blue-light); }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="survey-header">
+    <div class="badge">Confidential</div>
+    <h1>Driver Satisfaction Survey</h1>
+    <p>All questions are required. Your answers help us make things better for every driver.</p>
+    <div class="company-tag" id="company-tag">&#127970; <span id="company-display"></span></div>
+  </div>
+  <div class="progress-strip">
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="progress-label" id="prog-label">0 of 15</div>
+  </div>
+  <div class="survey-body">
+    <div class="no-company-banner" id="no-company-warn">&#9888;&#65039; <strong>No company detected.</strong> This link may be incomplete. Please ask your manager for the correct survey link.</div>
+    <div class="error-banner" id="err-banner">&#9888;&#65039; Please answer all required questions before submitting.</div>
+    <div id="form-view">
+      <div class="name-block">
+        <label for="driver-name">Driver name <span class="req">*</span></label>
+        <input class="name-input" type="text" id="driver-name" placeholder="Enter your full name" autocomplete="name" />
+        <div class="error-msg" id="name-err">&#9888; Please enter your name.</div>
+      </div>
+      <div class="name-block" style="margin-top:-1rem">
+        <label for="truck-number">Truck number <span class="req">*</span></label>
+        <input class="name-input" type="text" id="truck-number" placeholder="Enter your truck number" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+        <div class="error-msg" id="truck-err">&#9888; Please enter a valid truck number (numbers only, up to 8 digits).</div>
+      </div>
+      <div class="q-block" id="block-q1">
+        <div class="q-label"><span class="q-num">Q1.</span> How long have you been driving with us? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q1" data-type="single">
+          <div class="opt" data-v="Less than 6 months"><span class="opt-marker"></span>Less than 6 months</div>
+          <div class="opt" data-v="6 months to 1 year"><span class="opt-marker"></span>6 months to 1 year</div>
+          <div class="opt" data-v="1 to 3 years"><span class="opt-marker"></span>1 to 3 years</div>
+          <div class="opt" data-v="More than 3 years"><span class="opt-marker"></span>More than 3 years</div>
+        </div>
+        <div class="error-msg" id="err-q1">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q2">
+        <div class="q-label"><span class="q-num">Q2.</span> What type of routes do you mainly run? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q2" data-type="single">
+          <div class="opt" data-v="Local / Regional"><span class="opt-marker"></span>Local / Regional</div>
+          <div class="opt" data-v="Long-Haul / OTR"><span class="opt-marker"></span>Long-Haul / OTR</div>
+          <div class="opt" data-v="Dedicated Lane"><span class="opt-marker"></span>Dedicated Lane</div>
+          <div class="opt" data-v="Mixed"><span class="opt-marker"></span>Mixed</div>
+        </div>
+        <div class="error-msg" id="err-q2">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q3">
+        <div class="q-label"><span class="q-num">Q3.</span> Department ratings <span class="q-req">*</span></div>
+        <div class="q-sub">Rate each department — all rows required.</div>
+        <div class="scale-legend"><span>1 = Very Dissatisfied</span><span>2 = Dissatisfied</span><span>3 = Neutral</span><span>4 = Satisfied</span><span>5 = Very Satisfied</span></div>
+        <table class="rating-table">
+          <thead><tr><th>Department</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>Notes</th></tr></thead>
+          <tbody id="rating-tbody"></tbody>
+        </table>
+        <div class="error-msg" id="err-q3">&#9888; Please rate all departments.</div>
+      </div>
+      <div class="q-block" id="block-q4">
+        <div class="q-label"><span class="q-num">Q4.</span> Which department has helped you the most in your day-to-day work? <span class="q-req">*</span></div>
+        <div class="opts-grid" data-q="q4" data-type="single">
+          <div class="opt" data-v="Manager Communication"><span class="opt-marker"></span>Manager Communication</div>
+          <div class="opt" data-v="Dispatcher Communication"><span class="opt-marker"></span>Dispatcher Communication</div>
+          <div class="opt" data-v="Accounting Team"><span class="opt-marker"></span>Accounting Team</div>
+          <div class="opt" data-v="Fuel Team"><span class="opt-marker"></span>Fuel Team</div>
+          <div class="opt" data-v="PTI Team"><span class="opt-marker"></span>PTI Team</div>
+          <div class="opt" data-v="Maintenance Team"><span class="opt-marker"></span>Maintenance Team</div>
+          <div class="opt" data-v="Shop / Service Support"><span class="opt-marker"></span>Shop / Service Support</div>
+          <div class="opt" data-v="None / Not sure"><span class="opt-marker"></span>None / Not sure</div>
+        </div>
+        <div class="error-msg" id="err-q4">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q5">
+        <div class="q-label"><span class="q-num">Q5.</span> Which department do you think needs the most improvement? <span class="q-req">*</span></div>
+        <div class="opts-grid" data-q="q5" data-type="single">
+          <div class="opt" data-v="Manager Communication"><span class="opt-marker"></span>Manager Communication</div>
+          <div class="opt" data-v="Dispatcher Communication"><span class="opt-marker"></span>Dispatcher Communication</div>
+          <div class="opt" data-v="Accounting Team"><span class="opt-marker"></span>Accounting Team</div>
+          <div class="opt" data-v="Fuel Team"><span class="opt-marker"></span>Fuel Team</div>
+          <div class="opt" data-v="PTI Team"><span class="opt-marker"></span>PTI Team</div>
+          <div class="opt" data-v="Maintenance Team"><span class="opt-marker"></span>Maintenance Team</div>
+          <div class="opt" data-v="Shop / Service Support"><span class="opt-marker"></span>Shop / Service Support</div>
+          <div class="opt" data-v="No issues"><span class="opt-marker"></span>No issues</div>
+        </div>
+        <div class="error-msg" id="err-q5">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q6">
+        <div class="q-label"><span class="q-num">Q6.</span> When you have a problem on the road, do you know who to call? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q6" data-type="single">
+          <div class="opt" data-v="Yes, always"><span class="opt-marker"></span>Yes, always</div>
+          <div class="opt" data-v="Sometimes"><span class="opt-marker"></span>Sometimes</div>
+          <div class="opt" data-v="No, it is not clear"><span class="opt-marker"></span>No, it is not clear</div>
+        </div>
+        <div class="error-msg" id="err-q6">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q7">
+        <div class="q-label"><span class="q-num">Q7.</span> When you contact any department, how fast do they usually get back to you? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q7" data-type="single">
+          <div class="opt" data-v="Same day"><span class="opt-marker"></span>Same day</div>
+          <div class="opt" data-v="Next day"><span class="opt-marker"></span>Next day</div>
+          <div class="opt" data-v="2 to 3 days"><span class="opt-marker"></span>2 to 3 days</div>
+          <div class="opt" data-v="Takes too long"><span class="opt-marker"></span>Takes too long</div>
+        </div>
+        <div class="error-msg" id="err-q7">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q8">
+        <div class="q-label"><span class="q-num">Q8.</span> Have you ever raised a complaint or concern that felt ignored? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q8" data-type="single">
+          <div class="opt" data-v="Yes, more than once"><span class="opt-marker"></span>Yes, more than once</div>
+          <div class="opt" data-v="Yes, once or twice"><span class="opt-marker"></span>Yes, once or twice</div>
+          <div class="opt" data-v="No, never"><span class="opt-marker"></span>No, never</div>
+        </div>
+        <div class="error-msg" id="err-q8">&#9888; Please select an option.</div>
+        <div style="margin-top:12px">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;font-style:italic">If yes — what happened? (write below)</div>
+          <textarea class="free-textarea" id="q8-detail" placeholder="Describe what happened..."></textarea>
+        </div>
+      </div>
+      <div class="q-block" id="block-q9">
+        <div class="q-label"><span class="q-num">Q9.</span> What is the one area you think the company should improve most? <span class="q-req">*</span></div>
+        <div class="opts-grid" data-q="q9" data-type="single">
+          <div class="opt" data-v="Better pay or bonuses"><span class="opt-marker"></span>Better pay or bonuses</div>
+          <div class="opt" data-v="Faster response from dispatchers"><span class="opt-marker"></span>Faster response from dispatchers</div>
+          <div class="opt" data-v="More home time / better schedule"><span class="opt-marker"></span>More home time / better schedule</div>
+          <div class="opt" data-v="Quicker maintenance and repairs"><span class="opt-marker"></span>Quicker maintenance and repairs</div>
+          <div class="opt" data-v="Clearer communication from management"><span class="opt-marker"></span>Clearer communication from management</div>
+          <div class="opt" data-v="Faster accounting / payment resolution"><span class="opt-marker"></span>Faster accounting / payment resolution</div>
+          <div class="opt" data-v="Better fuel card support"><span class="opt-marker"></span>Better fuel card support</div>
+          <div class="opt" data-v="More respect and recognition"><span class="opt-marker"></span>More respect and recognition</div>
+          <div class="opt" data-v="Equipment upgrades"><span class="opt-marker"></span>Equipment upgrades</div>
+          <div class="opt" data-v="Other"><span class="opt-marker"></span>Other (write below)</div>
+        </div>
+        <div class="error-msg" id="err-q9">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q10">
+        <div class="q-label"><span class="q-num">Q10.</span> Have you had any of these issues in the past 3 months? <span class="q-req">*</span></div>
+        <div class="q-sub">Select all that apply.</div>
+        <div class="opts-grid" data-q="q10" data-type="multi">
+          <div class="opt" data-v="Late or incorrect paycheck"><span class="opt-marker checkbox"></span>Late or incorrect paycheck</div>
+          <div class="opt" data-v="Dispatcher did not respond in time"><span class="opt-marker checkbox"></span>Dispatcher did not respond in time</div>
+          <div class="opt" data-v="Maintenance issue not fixed quickly"><span class="opt-marker checkbox"></span>Maintenance issue not fixed quickly</div>
+          <div class="opt" data-v="Fuel card not working"><span class="opt-marker checkbox"></span>Fuel card not working</div>
+          <div class="opt" data-v="PTI delay held up my route"><span class="opt-marker checkbox"></span>PTI delay held up my route</div>
+          <div class="opt" data-v="Could not reach my manager"><span class="opt-marker checkbox"></span>Could not reach my manager</div>
+          <div class="opt" data-v="Felt disrespected by someone at the company"><span class="opt-marker checkbox"></span>Felt disrespected by someone</div>
+          <div class="opt" data-v="No issues to report"><span class="opt-marker checkbox"></span>No issues to report</div>
+        </div>
+        <div class="error-msg" id="err-q10">&#9888; Please select at least one option.</div>
+      </div>
+      <div class="q-block" id="block-q11">
+        <div class="q-label"><span class="q-num">Q11.</span> Before you joined, how did you first hear about us? <span class="q-req">*</span></div>
+        <div class="opts-grid" data-q="q11" data-type="single">
+          <div class="opt" data-v="A friend or fellow driver told me"><span class="opt-marker"></span>A friend or fellow driver told me</div>
+          <div class="opt" data-v="I saw a job posting online (Indeed etc.)"><span class="opt-marker"></span>Job posting online (Indeed etc.)</div>
+          <div class="opt" data-v="Found you on social media"><span class="opt-marker"></span>Found you on social media</div>
+          <div class="opt" data-v="I saw a truck or sign on the road"><span class="opt-marker"></span>I saw a truck or sign on the road</div>
+          <div class="opt" data-v="A recruiter contacted me"><span class="opt-marker"></span>A recruiter contacted me</div>
+          <div class="opt" data-v="I searched Google / the internet"><span class="opt-marker"></span>I searched Google / the internet</div>
+          <div class="opt" data-v="I drove past the terminal or office"><span class="opt-marker"></span>I drove past the terminal or office</div>
+          <div class="opt" data-v="Other"><span class="opt-marker"></span>Other (write below)</div>
+        </div>
+        <div class="error-msg" id="err-q11">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q12">
+        <div class="q-label"><span class="q-num">Q12.</span> Which social media platform do you use the most? <span class="q-req">*</span></div>
+        <div class="q-sub">Select all that apply.</div>
+        <div class="opts-grid" data-q="q12" data-type="multi">
+          <div class="opt" data-v="Facebook"><span class="opt-marker checkbox"></span>Facebook</div>
+          <div class="opt" data-v="Instagram"><span class="opt-marker checkbox"></span>Instagram</div>
+          <div class="opt" data-v="YouTube"><span class="opt-marker checkbox"></span>YouTube</div>
+          <div class="opt" data-v="TikTok"><span class="opt-marker checkbox"></span>TikTok</div>
+          <div class="opt" data-v="Twitter / X"><span class="opt-marker checkbox"></span>Twitter / X</div>
+          <div class="opt" data-v="LinkedIn"><span class="opt-marker checkbox"></span>LinkedIn</div>
+          <div class="opt" data-v="Snapchat"><span class="opt-marker checkbox"></span>Snapchat</div>
+          <div class="opt" data-v="I do not use social media"><span class="opt-marker checkbox"></span>I do not use social media</div>
+        </div>
+        <div class="error-msg" id="err-q12">&#9888; Please select at least one option.</div>
+      </div>
+      <div class="q-block" id="block-q13">
+        <div class="q-label"><span class="q-num">Q13.</span> Overall, how satisfied are you working for this company? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q13" data-type="single">
+          <div class="opt" data-v="Very Satisfied"><span class="opt-marker"></span>Very Satisfied</div>
+          <div class="opt" data-v="Satisfied"><span class="opt-marker"></span>Satisfied</div>
+          <div class="opt" data-v="Neutral"><span class="opt-marker"></span>Neutral</div>
+          <div class="opt" data-v="Dissatisfied"><span class="opt-marker"></span>Dissatisfied</div>
+          <div class="opt" data-v="Very Dissatisfied"><span class="opt-marker"></span>Very Dissatisfied</div>
+        </div>
+        <div class="error-msg" id="err-q13">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q14">
+        <div class="q-label"><span class="q-num">Q14.</span> Would you recommend us to another driver? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q14" data-type="single">
+          <div class="opt" data-v="Yes, definitely"><span class="opt-marker"></span>Yes, definitely</div>
+          <div class="opt" data-v="Maybe"><span class="opt-marker"></span>Maybe</div>
+          <div class="opt" data-v="No"><span class="opt-marker"></span>No</div>
+        </div>
+        <div class="error-msg" id="err-q14">&#9888; Please select an option.</div>
+      </div>
+      <div class="q-block" id="block-q15">
+        <div class="q-label"><span class="q-num">Q15.</span> Do you feel valued and respected as a driver? <span class="q-req">*</span></div>
+        <div class="opts-row" data-q="q15" data-type="single">
+          <div class="opt" data-v="Yes, always"><span class="opt-marker"></span>Yes, always</div>
+          <div class="opt" data-v="Most of the time"><span class="opt-marker"></span>Most of the time</div>
+          <div class="opt" data-v="Sometimes"><span class="opt-marker"></span>Sometimes</div>
+          <div class="opt" data-v="Rarely"><span class="opt-marker"></span>Rarely</div>
+        </div>
+        <div class="error-msg" id="err-q15">&#9888; Please select an option.</div>
+      </div>
+      <div class="submit-section">
+        <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">Submit Survey</button>
+        <p class="submit-note">All answers are confidential &middot; Required fields marked with *</p>
+      </div>
+    </div>
+    <div class="success-screen" id="success-view">
+      <div class="success-icon">&#10003;</div>
+      <h2>Thank you, <span id="thank-name"></span>!</h2>
+      <p>Your survey has been submitted and saved.<br>We truly appreciate your honest feedback.</p>
+      <button class="new-btn" onclick="location.reload()">Submit another response</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── REPLACE with your Google Apps Script Web App URL ──
+  const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycby1cwlvBHFhz8opEqMr5f-6FRTqbcRC5zwwIHJqQqD6kOenX9x9lL90euVLm-l6I4ki/exec';
+
+  // ── REPLACE with the same secret key you set in Apps Script ──
+  const SECRET_KEY = 'Trucks2025!xQ';
+
+  // Read ?company= from URL
+  const params = new URLSearchParams(window.location.search);
+  const COMPANY = (params.get('company') || '').trim();
+
+  if (COMPANY) {
+    const tag = document.getElementById('company-tag');
+    tag.style.display = 'inline-flex';
+    document.getElementById('company-display').textContent = COMPANY;
+  } else {
+    document.getElementById('no-company-warn').classList.add('show');
+  }
+
+  const DEPTS = ['Manager Communication','Dispatcher Communication','Accounting Team','Fuel Team','Pre-Trip Inspection (PTI) Team','Maintenance Team','Shop / Service Support','HR'];
+  const ratings = {}, notes = {};
+
+  DEPTS.forEach(dept => {
+    ratings[dept] = null; notes[dept] = '';
+    const tr = document.createElement('tr');
+    const s = dept.replace(/'/g,"\\'");
+    let h = `<td>${dept}</td>`;
+    for (let i=1;i<=5;i++) h += `<td><button type="button" class="r-btn" onclick="setRating('${s}',${i},this)">${i}</button></td>`;
+    h += `<td><input class="note-input" type="text" placeholder="optional..." oninput="notes['${s}']=this.value"/></td>`;
+    tr.innerHTML = h;
+    document.getElementById('rating-tbody').appendChild(tr);
+  });
+
+  const answers = {};
+  for (let i=1;i<=15;i++) answers['q'+i] = null;
+  answers.q10 = []; answers.q12 = [];
+
+  document.querySelectorAll('[data-q]').forEach(group => {
+    const q = group.dataset.q, type = group.dataset.type;
+    group.querySelectorAll('.opt').forEach(opt => {
+      opt.addEventListener('click', () => {
+        if (type === 'single') {
+          group.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          answers[q] = opt.dataset.v;
+        } else {
+          opt.classList.toggle('selected');
+          const v = opt.dataset.v;
+          if (!Array.isArray(answers[q])) answers[q] = [];
+          if (opt.classList.contains('selected')) answers[q].push(v);
+          else answers[q] = answers[q].filter(x => x !== v);
+        }
+        document.getElementById('err-'+q).classList.remove('show');
+        updateProgress();
+      });
+    });
+  });
+
+  function setRating(dept, val, btn) {
+    ratings[dept] = val;
+    btn.closest('tr').querySelectorAll('.r-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    document.getElementById('err-q3').classList.remove('show');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    let done = 0;
+    if (document.getElementById('driver-name').value.trim()) done++;
+    if (/^[0-9]{1,8}$/.test(document.getElementById('truck-number').value.trim())) done++;
+    for (let i=1;i<=15;i++) {
+      const k = 'q'+i;
+      if (i===3) { if (DEPTS.every(d => ratings[d]!==null)) done++; }
+      else if (Array.isArray(answers[k])) { if (answers[k].length>0) done++; }
+      else { if (answers[k]) done++; }
+    }
+    document.getElementById('prog-fill').style.width = Math.round((done/17)*100)+'%';
+    document.getElementById('prog-label').textContent = Math.max(0,done-1)+' of 15';
+  }
+
+  document.getElementById('driver-name').addEventListener('input', () => {
+    document.getElementById('name-err').classList.remove('show');
+    updateProgress();
+  });
+  document.getElementById('truck-number').addEventListener('input', () => {
+    document.getElementById('truck-err').classList.remove('show');
+    updateProgress();
+  });
+
+  function validate() {
+    let valid = true;
+    if (!document.getElementById('driver-name').value.trim()) {
+      document.getElementById('name-err').classList.add('show'); valid = false;
+    }
+    const truckVal = document.getElementById('truck-number').value.trim();
+    if (!truckVal || !/^[0-9]{1,8}$/.test(truckVal)) {
+      document.getElementById('truck-err').classList.add('show'); valid = false;
+    }
+    for (let i=1;i<=15;i++) {
+      const k = 'q'+i;
+      let ok = (i===3) ? DEPTS.every(d=>ratings[d]!==null)
+               : Array.isArray(answers[k]) ? answers[k].length>0
+               : !!answers[k];
+      if (!ok) {
+        document.getElementById('err-'+k).classList.add('show');
+        if (valid) document.getElementById('block-'+k).scrollIntoView({behavior:'smooth',block:'center'});
+        valid = false;
+      }
+    }
+    return valid;
+  }
+
+  async function handleSubmit() {
+    document.getElementById('err-banner').classList.remove('show');
+    if (!validate()) { document.getElementById('err-banner').classList.add('show'); window.scrollTo({top:0,behavior:'smooth'}); return; }
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Submitting...';
+    const name = document.getElementById('driver-name').value.trim();
+    const truckNumber = document.getElementById('truck-number').value.trim();
+    const row = {
+      'secret': SECRET_KEY,
+      'Timestamp': new Date().toLocaleString(),
+      'Company': COMPANY || 'Unknown',
+      'Driver Name': name,
+      'Truck Number': truckNumber,
+      'Q1 - Time with company': answers.q1,
+      'Q2 - Route type': answers.q2,
+    };
+    DEPTS.forEach(d => {
+      row['Q3 - '+d+' (rating)'] = ratings[d];
+      if (notes[d]) row['Q3 - '+d+' (notes)'] = notes[d];
+    });
+    Object.assign(row, {
+      'Q4 - Most helpful dept': answers.q4,
+      'Q5 - Needs most improvement': answers.q5,
+      'Q6 - Knows who to call': answers.q6,
+      'Q7 - Response speed': answers.q7,
+      'Q8 - Complaint ignored': answers.q8,
+      'Q8 - Complaint detail': document.getElementById('q8-detail').value.trim(),
+      'Q9 - Area to improve': answers.q9,
+      'Q10 - Issues past 3 months': answers.q10.join('; '),
+      'Q11 - How they heard about us': answers.q11,
+      'Q12 - Social media': answers.q12.join('; '),
+      'Q13 - Overall satisfaction': answers.q13,
+      'Q14 - Would recommend': answers.q14,
+      'Q15 - Feels valued': answers.q15,
+    });
+    try {
+      await fetch(GOOGLE_SHEET_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(row) });
+      document.getElementById('thank-name').textContent = name;
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+      window.scrollTo({top:0,behavior:'smooth'});
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = 'Submit Survey';
+      alert('Submission failed. Please check your internet and try again.');
+    }
+  }
+</script>
+
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  APPS SCRIPT — paste into Extensions > Apps Script in your Google Sheet     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+// ── Set this to any password you choose — must match SECRET_KEY in the HTML ──
+var SECRET_KEY = 'YOUR_SECRET_KEY_HERE';
+
+function doPost(e) {
+  try {
+    var ss   = SpreadsheetApp.getActiveSpreadsheet();
+    var data = JSON.parse(e.postData.contents);
+
+    // ── Secret key check — rejects any request that doesn't know the key ──
+    if (data['secret'] !== SECRET_KEY) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ result: 'error', error: 'Unauthorized' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Remove secret key before saving to sheet
+    delete data['secret'];
+
+    var companyName = data['Company'] || 'Unknown';
+    var driverName  = (data['Driver Name'] || '').trim().toLowerCase();
+
+    // ── Check main company tab for an existing submission from this driver ──
+    var mainSheet = ss.getSheetByName(companyName);
+    var isDuplicate = false;
+
+    if (mainSheet && mainSheet.getLastRow() > 1) {
+      var existingData = mainSheet.getDataRange().getValues();
+      var headers = existingData[0];
+      var driverCol = headers.indexOf('Driver Name');
+      if (driverCol !== -1) {
+        for (var r = 1; r < existingData.length; r++) {
+          if ((existingData[r][driverCol] || '').toString().trim().toLowerCase() === driverName) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // ── Route: duplicates go to a separate resubmissions tab ──
+    var targetName = isDuplicate ? companyName + ' - Resubmissions' : companyName;
+    var sheet = ss.getSheetByName(targetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(targetName);
+    }
+
+    var rowHeaders = Object.keys(data);
+    var values     = Object.values(data);
+
+    // Bold blue header row on first submission for this tab
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(rowHeaders);
+      sheet.getRange(1, 1, 1, rowHeaders.length)
+           .setFontWeight('bold')
+           .setBackground('#1a56db')
+           .setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow(values);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'error', error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  HOW IT WORKS                                                               ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                             ║
+║  1 hosted file + 1 Google Sheet = all 30 companies handled automatically   ║
+║                                                                             ║
+║  Each company gets a unique link:                                           ║
+║    https://yoursite.tiiny.site?company=Acme+Trucking                       ║
+║    https://yoursite.tiiny.site?company=Blue+Ridge+Transport                ║
+║                                                                             ║
+║  First submission from a driver → goes to the company tab (e.g. Acme Trucking)
+║  Second submission from same driver → goes to "Acme Trucking - Resubmissions"
+║  Matching is by Driver Name (case-insensitive)                              ║
+║                                                                             ║
+║  Secret key: both the HTML file and Apps Script must have the same key.    ║
+║  Any POST request without the correct key is rejected automatically.       ║
+║                                                                             ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  SETUP STEPS                                                                ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                             ║
+║  1. Go to sheets.google.com — create a new blank spreadsheet               ║
+║  2. Click Extensions > Apps Script                                          ║
+║  3. Delete existing code, paste the doPost function above                  ║
+║  4. In the script, replace YOUR_SECRET_KEY_HERE with any password you pick ║
+║     e.g.  var SECRET_KEY = 'Trucks2025!xQ';                                ║
+║  5. Click Deploy > New deployment > Web app                                 ║
+║     - Execute as: Me                                                        ║
+║     - Who has access: Anyone  (required — do not change this)              ║
+║  6. Copy the Web App URL                                                    ║
+║  7. Open this HTML file in Notepad/text editor                              ║
+║  8. Replace YOUR_APPS_SCRIPT_URL_HERE with the URL from step 6             ║
+║  9. Replace YOUR_SECRET_KEY_HERE with the same password from step 4        ║
+║  10. Go to tiiny.host — upload this file — get your base URL               ║
+║  11. Build each company link: baseURL?company=Company+Name                 ║
+║  12. Send each company their link                                           ║
+║                                                                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+</body>
+</html>
