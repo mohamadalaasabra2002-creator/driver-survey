@@ -307,10 +307,10 @@
 
 <script>
   // ── REPLACE with your Google Apps Script Web App URL ──
-  const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycby1cwlvBHFhz8opEqMr5f-6FRTqbcRC5zwwIHJqQqD6kOenX9x9lL90euVLm-l6I4ki/exec';
+  const GOOGLE_SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 
   // ── REPLACE with the same secret key you set in Apps Script ──
-  const SECRET_KEY = 'Trucks2025!xQ';
+  const SECRET_KEY = 'YOUR_SECRET_KEY_HERE';
 
   // Read ?company= from URL
   const params = new URLSearchParams(window.location.search);
@@ -425,33 +425,35 @@
     btn.innerHTML = '<span class="spinner"></span>Submitting...';
     const name = document.getElementById('driver-name').value.trim();
     const truckNumber = document.getElementById('truck-number').value.trim();
+    const ratingLabels = {1:'Very Dissatisfied',2:'Dissatisfied',3:'Neutral',4:'Satisfied',5:'Very Satisfied'};
+    const fmtMulti = arr => arr.length ? arr.map((v,i) => (i+1)+'. '+v).join('\n') : '';
     const row = {
       'secret': SECRET_KEY,
       'Timestamp': new Date().toLocaleString(),
       'Company': COMPANY || 'Unknown',
       'Driver Name': name,
       'Truck Number': truckNumber,
-      'Q1 - Time with company': answers.q1,
-      'Q2 - Route type': answers.q2,
+      'Time with company': answers.q1,
+      'Route type': answers.q2,
     };
     DEPTS.forEach(d => {
-      row['Q3 - '+d+' (rating)'] = ratings[d];
-      if (notes[d]) row['Q3 - '+d+' (notes)'] = notes[d];
+      row[d+' (rating)'] = ratingLabels[ratings[d]] || ratings[d];
+      row[d+' (notes)'] = notes[d] || 'None';
     });
     Object.assign(row, {
-      'Q4 - Most helpful dept': answers.q4,
-      'Q5 - Needs most improvement': answers.q5,
-      'Q6 - Knows who to call': answers.q6,
-      'Q7 - Response speed': answers.q7,
-      'Q8 - Complaint ignored': answers.q8,
-      'Q8 - Complaint detail': document.getElementById('q8-detail').value.trim(),
-      'Q9 - Area to improve': answers.q9,
-      'Q10 - Issues past 3 months': answers.q10.join('; '),
-      'Q11 - How they heard about us': answers.q11,
-      'Q12 - Social media': answers.q12.join('; '),
-      'Q13 - Overall satisfaction': answers.q13,
-      'Q14 - Would recommend': answers.q14,
-      'Q15 - Feels valued': answers.q15,
+      'Most helpful dept': answers.q4,
+      'Needs most improvement': answers.q5,
+      'Knows who to call': answers.q6,
+      'Response speed': answers.q7,
+      'Complaint ignored': answers.q8,
+      'Complaint detail': document.getElementById('q8-detail').value.trim() || 'None',
+      'Area to improve': answers.q9,
+      'Issues past 3 months': fmtMulti(answers.q10),
+      'How they heard about us': answers.q11,
+      'Social media': fmtMulti(answers.q12),
+      'Overall satisfaction': answers.q13,
+      'Would recommend': answers.q14,
+      'Feels valued': answers.q15,
     });
     try {
       await fetch(GOOGLE_SHEET_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(row) });
