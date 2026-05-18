@@ -307,10 +307,10 @@
 
 <script>
   // ── REPLACE with your Google Apps Script Web App URL ──
-  const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycby1cwlvBHFhz8opEqMr5f-6FRTqbcRC5zwwIHJqQqD6kOenX9x9lL90euVLm-l6I4ki/exec';
+  const GOOGLE_SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 
   // ── REPLACE with the same secret key you set in Apps Script ──
-  const SECRET_KEY = 'Trucks2025!xQ';
+  const SECRET_KEY = 'YOUR_SECRET_KEY_HERE';
 
   // Read ?company= from URL
   const params = new URLSearchParams(window.location.search);
@@ -494,8 +494,9 @@ function doPost(e) {
 
     var companyName = data['Company'] || 'Unknown';
     var driverName  = (data['Driver Name'] || '').trim().toLowerCase();
+    var truckNumber = (data['Truck Number'] || '').trim();
 
-    // ── Check main company tab for an existing submission from this driver ──
+    // ── Check main company tab for an existing driver name OR truck number ──
     var mainSheet = ss.getSheetByName(companyName);
     var isDuplicate = false;
 
@@ -503,12 +504,13 @@ function doPost(e) {
       var existingData = mainSheet.getDataRange().getValues();
       var headers = existingData[0];
       var driverCol = headers.indexOf('Driver Name');
-      if (driverCol !== -1) {
-        for (var r = 1; r < existingData.length; r++) {
-          if ((existingData[r][driverCol] || '').toString().trim().toLowerCase() === driverName) {
-            isDuplicate = true;
-            break;
-          }
+      var truckCol  = headers.indexOf('Truck Number');
+      for (var r = 1; r < existingData.length; r++) {
+        var nameMatch  = driverCol !== -1 && (existingData[r][driverCol] || '').toString().trim().toLowerCase() === driverName;
+        var truckMatch = truckCol  !== -1 && (existingData[r][truckCol]  || '').toString().trim() === truckNumber;
+        if (nameMatch || truckMatch) {
+          isDuplicate = true;
+          break;
         }
       }
     }
