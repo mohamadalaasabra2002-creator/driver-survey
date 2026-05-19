@@ -315,7 +315,7 @@
   // Read ?company= from URL
   const params = new URLSearchParams(window.location.search);
   const COMPANY = (params.get('company') || '').trim();
-
+  alert('Company detected: ' + COMPANY);
   if (COMPANY) {
     const tag = document.getElementById('company-tag');
     tag.style.display = 'inline-flex';
